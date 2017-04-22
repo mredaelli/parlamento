@@ -1,15 +1,26 @@
+import java.util.Date
+
 import doobie.imports._
 
-object App {
+object Main {
 
   def main(args: Array[String]): Unit = {
 
-    val program2 : ConnectionIO[Int] = sql"select 42".query[Int].unique
-    DB.tr(sql"CREATE TABLE IF NOT EXISTS DDL (id STRING);".update.run)
-    println(DB.tr(program2))
+    try {
+      println(DB.init())
 
-    println(Client.allDdl())
+      /*val ddls = Client.allDdl().get
+      println(ddls.size)*/
 
-    Client.close()
+      val ddl = Ddl("id", "", "", new Date(), "", "", "", "", "", 1,new Date(), 1, 1, 1, 1, "", "" )
+      DB.tr(DB.upsert(ddl))
+
+      println(DB.tr(DB.qr[Ddl]("select * from Ddl").list))
+
+
+    } finally {
+      Client.close()
+    }
+
   }
 }
