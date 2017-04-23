@@ -1,7 +1,9 @@
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import io.circe._, io.circe.parser._
+import cats.data.Kleisli
+import io.circe._
+import io.circe.parser._
 import io.circe.Decoder._
 import io.circe.generic.auto._
 
@@ -39,9 +41,27 @@ object Ddl {
     "testoPresentato")
 }
 
-case class Sparql(value: Json)
+case class Sparql(value: Seq[Json])
 
 object EncDec {
+
+
+  def parseSparqlJson(json: Json): Either[String, Seq[Json]] = {
+    import cats.implicits._
+    val bindings_ = json.hcursor.downField("results").downField("bindings").success
+    bindings_ match {
+      case Some(bindings) => {
+        val funcs = bindings.downArray.fields.get.map(f =>
+          Kleisli {
+            (v: Json) => v.hcursor.downField(f).withFocus(j => j.withObject(_ => v.hcursor.downField(f).downField("value").focus.get)).top
+          }
+        ) reduce ((a, b) => a compose b)
+        //val all = funcs
+        Right(bindings.values.get.flatMap(funcs.apply))
+      }
+      case None => Left(s"Couldn't navigate to results/bindings from $json")
+    }
+  }
 
   implicit val DateFormat : Encoder[Date] with Decoder[Date] = new Encoder[Date] with Decoder[Date] {
     private val sdf = new SimpleDateFormat("yyyy-MM-dd")
@@ -53,16 +73,16 @@ object EncDec {
     ).apply(c)
   }
 
-  implicit val SparqlJSON: Decoder[Sparql] = new Decoder[Sparql] {
-    override def apply(c: HCursor): Result[Sparql] = Decoder.decodeString.emap(
-      s => parse(s) match {
-        case Left(e) => Left(e.message)
-        case Right(json) => Right(Sparql(json.hcursor.downField("results").downField("bindings").downArray.focus.get))
-      }
-    ).apply(c)
-  }
+  implicit val SparqlJSON: Decoder[Sparql] = (c: HCursor) => Decoder.decodeJson.emap(
+    s =>{
+      println(2)
+        parseSparqlJson(s) match {
+          case Left(e) => Left(e)
+          case Right(seq) => Right(Sparql(seq))
+    }}
+  ).apply(c)
 
-  implicitly[Decoder[Ddl]]
+  implicit val sparqlDdl = implicitly[Decoder[Ddl]]
 }
 
 
