@@ -187,7 +187,11 @@ val entries = parse("""{
   //println(entries.get.)
 
     entries.values.get.foreach( v =>
-      entries.downArray.fields.get.foreach( f => println(v.hcursor.downField(f).downField("value").focus) )
+      entries.downArray.fields.get.foreach( f => {
+        val ff = v.hcursor.downField(f)
+        println(ff.withFocus( j => j.withObject( _ => v.hcursor.downField(f).downField("value").focus.get ) ).top
+        )
+      } )
     )
 
     try {
