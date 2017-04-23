@@ -1,9 +1,8 @@
 
-
 import cats.data.EitherT
-
 import io.circe.Decoder
 import org.http4s.{EntityDecoder, Request}
+
 
 //import scala.xml.Elem
 
@@ -11,7 +10,7 @@ private object Decoders {
 
   import org.http4s._
   import org.http4s.circe._
-  import EncDec._
+  import Json.EncDec._
 
   /*implicit def sparqlXMLdecoder: EntityDecoder[Elem] = EntityDecoder.decodeBy(MediaType.fromKey("application", "sparql-results+xml")) { msg =>
     xml.decode(msg.withContentType(Some(MediaType.`application/xml`)), strict = true)
@@ -20,6 +19,8 @@ private object Decoders {
   implicit def sparqlJSONdecoder: EntityDecoder[Sparql] = EntityDecoder.decodeBy(MediaType.fromKey("application", "sparql-results+json")) { msg =>
     jsonOf[Sparql].decode(msg.withContentType(Some(MediaType.`application/json`)), strict = true)
   }
+
+  import io.circe.generic.auto._
 
   implicit def sparqlJSONdecoderDdl: EntityDecoder[Ddl] = EntityDecoder.decodeBy(MediaType.fromKey("application", "sparql-results+json")) { msg =>
     val imp = implicitly[Decoder[Ddl]]
@@ -68,30 +69,34 @@ object Client {
   }
 
   /*
-    def allDdlIDs(): Option[Seq[String]] = {
+      def allDdlIDs(): Option[Seq[String]] = {
 
-      val readAllDdl = client.expect[Elem](queryURL(
-        """
-          |PREFIX osr: <http://dati.senato.it/osr/>
-          |select distinct ?id
-          |where { ?id a osr:Ddl }
-          |limit 100
-          |""".stripMargin))
+        val readAllDdl = client.expect[Elem](queryURL(
+          """
+            |PREFIX osr: <http://dati.senato.it/osr/>
+            |select distinct ?id
+            |where { ?id a osr:Ddl }
+            |limit 100
+            |""".stripMargin))
 
-      readAllDdl.unsafeAttemptRun() match {
-        case Right(body) =>
-          Some((body \\ "result" \ "binding" \ "uri") map (n => n.text))
-        case Left(e) => {
-          e.printStackTrace()
-          None
+        readAllDdl.unsafeAttemptRun() match {
+          case Right(body) =>
+            Some((body \\ "result" \ "binding" \ "uri") map (n => n.text))
+          case Left(e) => {
+            e.printStackTrace()
+            None
+          }
         }
       }
-    }
-  */
-  def getDdl(id: String): Either[Throwable, Seq[Ddl]] = {
+    */
+
+  def getDdl[T <: SparqlRes](id: String)(implicit fields: HasFields[T]) = {
     import Decoders._
     val mt = implicitly[EntityDecoder[Sparql]].consumes.head
-    val req: Request = Request(uri = queryURL(completeQuery("Ddl", Ddl.fields, ids = Set(id))) +? ("format", Seq(mt.renderString)) )
+    println(fields)
+    val query = completeQuery("Ddl", fields.fields, ids = Set(id))
+    println(query)
+    val req: Request = Request(uri = queryURL(query) +? ("format", Seq(mt.renderString)) )
     println(req)
     val readAllDdl = client.expect[Seq[Ddl]](req)
     readAllDdl.unsafeAttemptRun()
