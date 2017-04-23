@@ -1,10 +1,13 @@
 import java.util.Date
 
+import cats.data.Kleisli
+import cats.syntax._
 import doobie.imports._
 
 object Main {
   import io.circe._, io.circe.parser._
-  def main(args: Array[String]): Unit = {
+
+
 val entries = parse("""{
   |	"head": {
   |		"link": [],
@@ -186,14 +189,13 @@ val entries = parse("""{
   |}""".stripMargin).getOrElse(Json.False).hcursor.downField("results").downField("bindings")
   //println(entries.get.)
 
-    entries.values.get.foreach( v =>
-      entries.downArray.fields.get.foreach( f => {
-        val ff = v.hcursor.downField(f)
-        println(ff.withFocus( j => j.withObject( _ => v.hcursor.downField(f).downField("value").focus.get ) ).top
-        )
-      } )
-    )
+    val funcs = entries.downArray.fields.get.map(f =>
+      Kleisli{ (v: Json) => v.hcursor.downField(f).withFocus( j => j.withObject( _ => v.hcursor.downField(f).downField("value").focus.get ) ).top }
+    ).reduce((a, b) => a compose b )
 
+    println(entries.values.get.map( funcs.run ))
+
+  def main(args: Array[String]): Unit = {
     try {
       println(DB.init())
 
