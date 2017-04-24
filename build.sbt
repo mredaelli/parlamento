@@ -5,6 +5,7 @@ version := "1.0"
 scalaVersion := "2.12.2"
 
 val http4sversion = "0.17.0-M1"
+val scribeVersion = "1.4.2"
 
 libraryDependencies ++= Seq(
   "org.http4s" % "http4s-blaze-client_2.12" % http4sversion,
@@ -12,7 +13,9 @@ libraryDependencies ++= Seq(
   "org.http4s" %% "http4s-circe" % http4sversion,
 
   "org.tpolecat" %% "doobie-core-cats" % "0.4.1",
-  "org.xerial" % "sqlite-jdbc" % "3.16.1"
+  "org.xerial" % "sqlite-jdbc" % "3.16.1",
+
+  "com.outr" %% "scribe-slf4j" % scribeVersion
 )
 
 val circeVersion = "0.7.1"

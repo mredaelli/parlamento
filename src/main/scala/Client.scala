@@ -2,9 +2,13 @@
 import cats.data.EitherT
 import io.circe.Decoder
 import org.http4s.{EntityDecoder, Request}
-import Fields._, Json.EncDec._, doobieDecoders._, io.circe.generic.auto._
+import Fields._
+import Json.EncDec._
+import doobieDecoders._
+import io.circe.generic.auto._
+import scribe.Logging
 
-object Client {
+object Client extends Logging {
 
   import org.http4s.client.blaze._
   import org.http4s.Uri
@@ -54,14 +58,21 @@ object Client {
       }
     */
 
+  /*
+      logger.update {
+      logger.copy(multiplier = 1.0)
+    }
+   */
+
   def getDdl[T <: SparqlRes](id: String)(implicit fields: HasFields[T], d: EntityDecoder[Seq[T]]) = {
     import doobieDecoders._
+
     val mt = implicitly[EntityDecoder[Sparql]].consumes.head
-    println(fields)
+    logger.debug(fields)
     val query = completeQuery("Ddl", fields.fields.filterNot(_.equals("id")), ids = Set(id))
-    println(query)
+    logger.debug(query)
     val req: Request = Request(uri = queryURL(query) +? ("format", Seq(mt.renderString)) )
-    println(req)
+    logger.debug(req)
     val readAllDdl = client.expect[Seq[T]](req)(d)
     readAllDdl.unsafeAttemptRun()
   }

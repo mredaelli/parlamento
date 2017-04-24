@@ -1,8 +1,12 @@
+import Client.logger
+import scribe.writer.ConsoleWriter
+import scribe.{Level, LogHandler, Logger, Logging}
 
-object Main {
-
+object Main  {
+  //Logger.root.addHandler(LogHandler(level = Level.Debug, writer = ConsoleWriter))
 
   def main(args: Array[String]): Unit = {
+
     try {
       //println(DB.init())
 
@@ -12,7 +16,7 @@ object Main {
       import Fields._, Json.EncDec._, doobieDecoders._, io.circe.generic.auto._
       val res = Client.getDdl[Ddl]("http://dati.senato.it/ddl/25597")
 
-      println(res)
+      scribe.info(res)
 
       /*val ddl = Ddl("id", "", "", new Date(), "", "", "", "", "", 1,new Date(), 1, 1, 1, 1, "", "" )
       DB.tr(DB.upsert(ddl))
