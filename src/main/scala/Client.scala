@@ -2,43 +2,7 @@
 import cats.data.EitherT
 import io.circe.Decoder
 import org.http4s.{EntityDecoder, Request}
-
-
-//import scala.xml.Elem
-
-private object Decoders {
-
-  import org.http4s._
-  import org.http4s.circe._
-  import Json.EncDec._
-
-  /*implicit def sparqlXMLdecoder: EntityDecoder[Elem] = EntityDecoder.decodeBy(MediaType.fromKey("application", "sparql-results+xml")) { msg =>
-    xml.decode(msg.withContentType(Some(MediaType.`application/xml`)), strict = true)
-  }*/
-
-  implicit def sparqlJSONdecoder: EntityDecoder[Sparql] = EntityDecoder.decodeBy(MediaType.fromKey("application", "sparql-results+json")) { msg =>
-    jsonOf[Sparql].decode(msg.withContentType(Some(MediaType.`application/json`)), strict = true)
-  }
-
-  import io.circe.generic.auto._
-
-  implicit def sparqlJSONdecoderDdl: EntityDecoder[Ddl] = EntityDecoder.decodeBy(MediaType.fromKey("application", "sparql-results+json")) { msg =>
-    val imp = implicitly[Decoder[Ddl]]
-    import cats.implicits._
-    EitherT {
-      msg.as[Sparql].map( sp => imp.decodeJson(sp.value.head).toOption.get.asRight[DecodeFailure])
-    }
-  }
-
-  implicit def sparqlJSONdecoderDdls: EntityDecoder[Seq[Ddl]] = EntityDecoder.decodeBy(MediaType.fromKey("application", "sparql-results+json")) { msg =>
-    val imp = implicitly[Decoder[Ddl]]
-    import cats.implicits._
-    EitherT {
-      msg.as[Sparql].map( sp => sp.value.flatMap( j => imp.decodeJson(j).toOption ).asRight[DecodeFailure])
-    }
-  }
-}
-
+import Fields._, Json.EncDec._, doobieDecoders._, io.circe.generic.auto._
 
 object Client {
 
@@ -90,15 +54,15 @@ object Client {
       }
     */
 
-  def getDdl[T <: SparqlRes](id: String)(implicit fields: HasFields[T]) = {
-    import Decoders._
+  def getDdl[T <: SparqlRes](id: String)(implicit fields: HasFields[T], d: EntityDecoder[Seq[T]]) = {
+    import doobieDecoders._
     val mt = implicitly[EntityDecoder[Sparql]].consumes.head
     println(fields)
-    val query = completeQuery("Ddl", fields.fields, ids = Set(id))
+    val query = completeQuery("Ddl", fields.fields.filterNot(_.equals("id")), ids = Set(id))
     println(query)
     val req: Request = Request(uri = queryURL(query) +? ("format", Seq(mt.renderString)) )
     println(req)
-    val readAllDdl = client.expect[Seq[Ddl]](req)
+    val readAllDdl = client.expect[Seq[T]](req)(d)
     readAllDdl.unsafeAttemptRun()
   }
 

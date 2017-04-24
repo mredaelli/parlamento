@@ -9,9 +9,10 @@ object Main {
       /*val ddls = Client.allDdl().get
       println(ddls.size)*/
       //val cq = Client.completeQuery("Ddl", Ddl.fields, limit = Some(10), ids = Set("http://dati.senato.it/ddl/25597", "3"))
-      import Fields._
-      val res = Client.getDdl[Ddl]("http://dati.senato.it/ddl/25597")(DdlHasFields)
-      //println(res)
+      import Fields._, Json.EncDec._, doobieDecoders._, io.circe.generic.auto._
+      val res = Client.getDdl[Ddl]("http://dati.senato.it/ddl/25597")
+
+      println(res)
 
       /*val ddl = Ddl("id", "", "", new Date(), "", "", "", "", "", 1,new Date(), 1, 1, 1, 1, "", "" )
       DB.tr(DB.upsert(ddl))
