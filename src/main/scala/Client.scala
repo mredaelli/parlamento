@@ -1,18 +1,13 @@
 
-import cats.data.EitherT
-import io.circe.Decoder
 import org.http4s.{EntityDecoder, Request}
-import Fields._
-import Json.EncDec._
-import doobieDecoders._
-import io.circe.generic.auto._
 import scribe.Logging
+import org.http4s.client.blaze._
+import org.http4s.Uri
+import doobieDecoders._
+
+import scala.reflect.ClassTag
 
 object Client extends Logging {
-
-  import org.http4s.client.blaze._
-  import org.http4s.Uri
-
 
   private val client = PooledHttp1Client()
 
@@ -22,7 +17,7 @@ object Client extends Logging {
 
   private val PREFIX = "PREFIX osr: <http://dati.senato.it/osr/>"
 
-  def completeQuery(t: String, fields: Traversable[String], ids: Set[String] = Set.empty, limit: Option[Int] = None) : String = {
+  def completeQuery(t: String, fields: Traversable[String], ids: Traversable[String] = Set.empty, limit: Option[Int] = None) : String = {
     val fields_ = (Seq("id") ++ fields).map(s => s"?$s").mkString(", ")
     val where = (fields.map(s => s"OPTIONAL { ?id osr:$s ?$s}") ++
       (if( ids.isEmpty )  Seq() else Seq("FILTER(?id IN (" + ids.map(id => s"<$id>").mkString(",") + "))"))
@@ -58,24 +53,21 @@ object Client extends Logging {
       }
     */
 
-  /*
-      logger.update {
-      logger.copy(multiplier = 1.0)
-    }
-   */
 
-  def getDdl[T <: SparqlRes](id: String)(implicit fields: HasFields[T], d: EntityDecoder[Seq[T]]) = {
-    import doobieDecoders._
-
+  private def request[T <: SparqlRes](id: Traversable[String])
+    (implicit ci: ClassInfo[T], d: EntityDecoder[Seq[T]]) : Either[Throwable, Seq[T]] = {
     val mt = implicitly[EntityDecoder[Sparql]].consumes.head
-    logger.debug(fields)
-    val query = completeQuery("Ddl", fields.fields.filterNot(_.equals("id")), ids = Set(id))
-    logger.debug(query)
+    val query = completeQuery(ci.name, ci.fields.filterNot(_.equals("id")), ids = id)
+    logger.warn(query)
     val req: Request = Request(uri = queryURL(query) +? ("format", Seq(mt.renderString)) )
-    logger.debug(req)
     val readAllDdl = client.expect[Seq[T]](req)(d)
     readAllDdl.unsafeAttemptRun()
   }
+
+  def request[T <: SparqlRes](id: String)(implicit ci: ClassInfo[T], d: EntityDecoder[Seq[T]])
+    : Either[Throwable, Seq[T]] = request[T](Seq(id))
+  def request[T <: SparqlRes]()(implicit ci: ClassInfo[T], d: EntityDecoder[Seq[T]])
+    : Either[Throwable, Seq[T]] = request[T](Seq())
 
   def close(): Unit = client.shutdownNow()
 }

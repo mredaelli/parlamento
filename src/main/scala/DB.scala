@@ -5,19 +5,21 @@ import doobie.imports._
 import doobie.util.transactor
 import fs2.Stream
 import cats.implicits._
+import doobie.util.transactor.DriverManagerTransactor
+import scribe.Logging
 
-object DB {
-
-  import doobie.util.transactor.DriverManagerTransactor
+object DB extends Logging {
 
   val xa: transactor.Transactor[IOLite] = DriverManagerTransactor[IOLite](
     "org.sqlite.JDBC", "jdbc:sqlite:sample.db", "", ""
   )
 
+
+
   def init(): Int = {
     println("initialize db")
 
-    def drop(table: String) = (fr"drop table if exists " ++ Fragment.const(table)).update.run
+    def drop[T](implicit ci: ClassInfo[T]) = (fr"drop table if exists " ++ Fragment.const(ci.name)).update.run
 
     val naturaC = sql"""CREATE TABLE Natura (
                             Nome STRING,
@@ -51,7 +53,7 @@ object DB {
                              FOREIGN KEY(natura) REFERENCES Natura(Nome)
                            );""".update.run
 
-    tr( drop("Natura") *> drop("Ddl") *> naturaC *> DdlC )
+    tr( drop[Natura] *> drop[Ddl] *> naturaC *> DdlC )
   }
 
   def tr[T](cio: ConnectionIO[T]): T = cio.transact(xa).unsafePerformIO
@@ -68,4 +70,16 @@ object DB {
     .run(ddl)
   }
 
+  def upsert[T](t: T)(implicit ci: ClassInfo[T], co: Composite[T]): ConnectionIO[Int] = {
+    val table = ci.name
+    val fields = ci.fields.mkString("(", ",", ")")
+    val qms = ci.fields.map(_ => "?").mkString("(", ",", ")")
+    val sql = s"replace into $table $fields values $qms"
+    logger.warn(sql)
+    Update[T](sql).run(t)
+  }
+
+  def upsert[T](t: Traversable[T])(implicit ci: ClassInfo[T], co: Composite[T]): ConnectionIO[Int] = {
+    t.map( o => upsert(o) ).reduce((a, b) => a *> b)
+  }
 }

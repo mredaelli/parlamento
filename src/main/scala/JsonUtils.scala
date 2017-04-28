@@ -4,15 +4,13 @@ import java.util.Date
 import cats.data.Kleisli
 import io.circe.Decoder.Result
 import io.circe.{Decoder, Encoder, HCursor, Json}
-import Fields._, Json.EncDec._, doobieDecoders._, io.circe.generic.auto._
 import scala.util.Try
 
 case class Sparql(value: Seq[Json])
 
-object Json {
+object JsonUtils {
 
   object EncDec {
-
 
     private def parseSparqlJson(json: Json): Either[String, Seq[Json]] = {
       import cats.implicits._
