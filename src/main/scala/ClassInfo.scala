@@ -11,18 +11,17 @@ trait ClassInfo[A] {
   val name: String
 }
 
-trait ClassInfoLowerLowerPriority {
+trait ClassInfoLowLow {
   implicit def primitiveFieldLister[K <: Symbol, H, T <: HList](implicit
-                                                               ct: ClassTag[H],
                                                                 witness: Witness.Aux[K],
-                                                                tLister: ClassInfo[T]
+                                                                tLister: Lazy[ClassInfo[T]]
                                                                ): ClassInfo[FieldType[K, H] :: T] = new ClassInfo[FieldType[K, H] ::T] {
-    override val fields: List[String] = witness.value.name :: tLister.fields
-    override val name: String = tLister.name
+    override val fields: List[String] = witness.value.name +: tLister.value.fields
+    override val name: String = tLister.value.name
   }
 }
 
-trait ClassInfoLowPriority  extends ClassInfoLowerLowerPriority {
+trait ClassInfoLow extends ClassInfoLowLow {
   implicit def hconsLister[K, H, T <: HList](implicit
                                              hLister: Lazy[ClassInfo[H]],
                                              tLister: ClassInfo[T]
@@ -32,7 +31,7 @@ trait ClassInfoLowPriority  extends ClassInfoLowerLowerPriority {
   }
 }
 
-object ClassInfo extends  ClassInfoLowPriority {
+object ClassInfo extends ClassInfoLow {
 
   implicit val hnilLister: ClassInfo[HNil] = new ClassInfo[HNil] {
     override val fields = Nil
@@ -48,12 +47,13 @@ object ClassInfo extends  ClassInfoLowPriority {
     override val name: String = w.toString()
   }
 
-  implicit def hconsLister2[K<:Symbol, H<:Transparent, T <: HList](implicit
-                                             witness: Witness.Aux[K],
-                                             tLister: ClassInfo[T]
-                                            ): ClassInfo[FieldType[K, H] :: T] = new ClassInfo[FieldType[K, H] :: T] {
-    override val fields: List[String] = witness.value.name +: tLister.fields
-    override val name: String = tLister.name
+  implicit def hconsLister2[K<:Symbol, H <: Transparent, T <: HList](implicit
+                                                                     witness: Witness.Aux[K],
+                                                                     tLister: Lazy[ClassInfo[T]]
+                                                                    ): ClassInfo[FieldType[K, H] :: T] = new ClassInfo[FieldType[K, H] :: T] {
+    override val fields: List[String] = witness.value.name +: tLister.value.fields
+    override val name: String = tLister.value.name
   }
+
 }
 
