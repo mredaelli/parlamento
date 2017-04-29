@@ -1,8 +1,10 @@
 import java.util.Date
 
-case class URLString(url: String)
+trait Transparent
 
-case class Ref[T](id: String)
+case class URLString(url: String) extends Transparent
+
+case class Ref[T](id: String) extends Transparent
 
 sealed trait SparqlRes
 
@@ -11,22 +13,20 @@ case class Natura(name: String) extends SparqlRes
 case class Ddl(id : URLString,
                statoDdl : String,
                ramo : String,
-               dataPresentazione: String, // Date
+               dataPresentazione: Date,
                titolo : String,
                fase : String,
                descrIniziativa : String,
                presentatoTrasmesso : String,
                natura : String,
                idDdl: Int,
-               dataStatoDdl: String, // Date
+               dataStatoDdl: Date,
                numeroFase: Int,
                legislatura: Int,
                progressivoIter: Int,
                idFase: Int,
                numeroFaseCompatto : String,
                testoPresentato : String) extends SparqlRes
-
-
 
 case class Classificazione(id: String,
                           livello: String,

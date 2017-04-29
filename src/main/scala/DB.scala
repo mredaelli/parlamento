@@ -8,12 +8,19 @@ import cats.implicits._
 import doobie.util.transactor.DriverManagerTransactor
 import scribe.Logging
 
+import scala.reflect.runtime.universe._
+
 object DB extends Logging {
 
   val xa: transactor.Transactor[IOLite] = DriverManagerTransactor[IOLite](
     "org.sqlite.JDBC", "jdbc:sqlite:sample.db", "", ""
   )
 
+  implicit val UrlStringMeta: Meta[URLString] =
+    Meta[String].nxmap(URLString, _.url)
+
+  implicit def RefMeta[T >: Null : Meta : TypeTag]: Meta[Ref[T]] =
+    Meta[String].nxmap(s => Ref[T](s), _.id)
 
 
   def init(): Int = {

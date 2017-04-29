@@ -3,7 +3,7 @@ import org.http4s.{EntityDecoder, Request}
 import scribe.Logging
 import org.http4s.client.blaze._
 import org.http4s.Uri
-import doobieDecoders._
+import circeDecoders._
 
 import scala.reflect.ClassTag
 

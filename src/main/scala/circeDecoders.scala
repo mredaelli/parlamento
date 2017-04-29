@@ -1,39 +1,58 @@
-import cats.data.EitherT
+import java.text.SimpleDateFormat
+import java.util.Date
+
+import cats.implicits._
+import cats.data._
 import io.circe.{Decoder, DecodingFailure}
 import org.http4s._
 import org.http4s.circe._
 import JsonUtils.EncDec._
-import cats.{Applicative, Unapply}
 import fs2.Task
 import io.circe.Decoder.Result
-import org.http4s
 
-object doobieDecoders {
+object circeDecoders {
 
   implicit def sparqlJSONdecoder: EntityDecoder[Sparql] = EntityDecoder.decodeBy(MediaType.fromKey("application", "sparql-results+json")) { msg =>
     jsonOf[Sparql].decode(msg.withContentType(Some(MediaType.`application/json`)), strict = true)
   }
 
-  def fooU[FA](fa: FA)(implicit U: Unapply[Applicative, FA]): U.M[U.A] =
-    U.subst(fa)
+  implicit val decodeUrlString: Decoder[URLString] = Decoder.decodeString.map { str =>
+    URLString(str)
+  }
+
+  implicit val decodeDate: Decoder[Date] = Decoder.decodeString.emap { str =>
+    val dsf = new SimpleDateFormat("yyyy-MM-dd")
+    Either.catchNonFatal(dsf.parse(str)).leftMap(t => t.getMessage)
+  }
+
+  implicit def decodeRef[T](implicit r: Decoder[T]): Decoder[Ref[T]] = Decoder.decodeString.map { str =>
+    Ref(str)
+  }
 
   implicit def sparqlJSONdecoderDdls[T<:SparqlRes](implicit imp: Decoder[T]): EntityDecoder[Seq[T]] = EntityDecoder.decodeBy(MediaType.fromKey("application", "sparql-results+json")) { msg =>
-    import cats.implicits._
 
-
-      val aa = msg.as[Sparql].map(sp => {
-        println(sp)
-        val ll: Seq[Result[T]] = sp.value.map(j => {
-          println(imp.decodeJson(j))
-          imp.decodeJson(j)
-        })
-        ll.foldRight( Either(io.circe.DecodingFailure, Seq[T]()) ) {
-          case ( e, (ls, rs) ) => e.fold( l => (ls, rs), r => ( ls, r +: rs ) )
+      val decodeRes: Task[Either[DecodeFailure, Seq[T]]] = msg.as[Sparql].map(sp => {
+        val allRes: Seq[Result[T]] =  sp.value.map(imp.decodeJson)
+        val oneRes = allRes.foldLeft(Seq[T]().asRight[DecodingFailure]) { (acc, n) =>
+          acc match {
+            case Left(err) => n match {
+              case Left(nerr) => DecodingFailure(err.message + nerr.message, err.history ++ nerr.history).asLeft[Seq[T]]
+              case _ => acc
+            }
+            case Right(ok) => n match {
+              case Left(nerr) => DecodingFailure(nerr.message, nerr.history).asLeft[Seq[T]]
+              case Right(nok) => (nok +: ok).asRight[DecodingFailure]
+            }
+          }
+        }
+        oneRes match {
+          case Right(r) => r.asRight[DecodeFailure]
+          case Left(l) => GenericDecodeFailure(l.message, httpVersion => Response(Status.NotAcceptable, httpVersion).withBody(""))
+            .asLeft[Seq[T]]
         }
       })
-        //
    EitherT {
-     aa
+     decodeRes
    }
   }
 

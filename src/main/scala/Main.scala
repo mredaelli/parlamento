@@ -1,10 +1,3 @@
-import java.util.Date
-
-import Client.logger
-import scribe.writer.ConsoleWriter
-import scribe.{Level, LogHandler, Logger, Logging}
-
-
 object Main  {
   //Logger.root.addHandler(LogHandler(level = Level.Debug, writer = ConsoleWriter))
 
@@ -16,7 +9,7 @@ object Main  {
       /*val ddls = Client.allDdl().get
       println(ddls.size)*/
       //val cq = Client.completeQuery("Ddl", Ddl.fields, limit = Some(10), ids = Set("http://dati.senato.it/ddl/25597", "3"))
-      import /*Fields._, */JsonUtils.EncDec._, doobieDecoders._, io.circe.generic.auto._
+      import /*Fields._, */JsonUtils.EncDec._, circeDecoders._, io.circe.generic.auto._
       val res = Client.request[Ddl]("http://dati.senato.it/ddl/25597")
       scribe.info(res)
       res.map( ddl => {
@@ -26,8 +19,6 @@ object Main  {
 
         println(DB.tr(DB.qr[Ddl]("select * from Ddl").list))
       })
-
-
 
 
     } finally {
