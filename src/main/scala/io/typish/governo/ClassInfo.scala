@@ -46,7 +46,7 @@ object ClassInfo extends ClassInfoLow {
                                    lister: Lazy[ClassInfo[R]]
                                   ): ClassInfo[A] = new ClassInfo[A] {
     override val fields: List[String] = lister.value.fields
-    override val name: String = w.toString()
+    override val name: String = w.toString().split('.').last
   }
 
   implicit def hconsLister2[K<:Symbol, H <: Transparent, T <: HList](implicit

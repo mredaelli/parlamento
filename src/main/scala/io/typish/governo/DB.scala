@@ -1,7 +1,5 @@
 package io.typish.governo
 
-import java.sql.Date
-
 import doobie.free.connection.ConnectionIO
 import doobie.imports._
 import doobie.util.transactor
@@ -69,22 +67,12 @@ object DB extends Logging {
 
   def qr[T: Composite](q: String): Stream[ConnectionIO, T] = HC.process[T](q, ().pure[PreparedStatementIO], 512)
 
-  def upsert(ddl: Ddl): ConnectionIO[Int] = {
-    Update[Ddl]("""
-      replace into Ddl
-      (id , statoDdl, ramo , dataPresentazione , titolo , fase , descrIniziativa , presentatoTrasmesso , natura , idDdl
-      , dataStatoDdl , numeroFase , legislatura , progressivoIter , idFase , numeroFaseCompatto , testoPresentato)
-      values
-      (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
-    .run(ddl)
-  }
-
   def upsert[T](t: T)(implicit ci: ClassInfo[T], co: Composite[T]): ConnectionIO[Int] = {
     val table = ci.name
     val fields = ci.fields.mkString("(", ",", ")")
     val qms = ci.fields.map(_ => "?").mkString("(", ",", ")")
     val sql = s"replace into $table $fields values $qms"
-    logger.warn(sql)
+    logger.debug(sql)
     Update[T](sql).run(t)
   }
 
