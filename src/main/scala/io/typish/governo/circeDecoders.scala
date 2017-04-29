@@ -1,3 +1,5 @@
+package io.typish.governo
+
 import java.text.SimpleDateFormat
 import java.util.Date
 

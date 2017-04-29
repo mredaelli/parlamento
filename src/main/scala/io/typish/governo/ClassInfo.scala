@@ -1,3 +1,5 @@
+package io.typish.governo
+
 import shapeless.{::, Generic, HList, HNil, HasCoproductGeneric, HasProductGeneric, LabelledGeneric, Lazy, Witness}
 import shapeless.labelled.{FieldType, KeyTag}
 import shapeless.tag.Tagged

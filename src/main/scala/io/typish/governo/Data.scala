@@ -1,3 +1,5 @@
+package io.typish.governo
+
 import java.util.Date
 
 trait Transparent

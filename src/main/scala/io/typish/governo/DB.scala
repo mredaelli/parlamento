@@ -1,3 +1,5 @@
+package io.typish.governo
+
 import java.sql.Date
 
 import doobie.free.connection.ConnectionIO

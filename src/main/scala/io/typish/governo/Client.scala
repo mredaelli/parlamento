@@ -1,3 +1,4 @@
+package io.typish.governo
 
 import org.http4s.{EntityDecoder, Request}
 import scribe.Logging

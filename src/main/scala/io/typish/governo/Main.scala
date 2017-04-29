@@ -1,3 +1,5 @@
+package io.typish.governo
+
 object Main  {
   //Logger.root.addHandler(LogHandler(level = Level.Debug, writer = ConsoleWriter))
 
