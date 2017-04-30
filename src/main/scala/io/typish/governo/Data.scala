@@ -18,7 +18,7 @@ case class Ddl(id : URLString,
                dataPresentazione: Date,
                titolo : String,
                fase : String,
-               descrIniziativa : String,
+               descrIniziativa : Option[String],
                presentatoTrasmesso : String,
                natura : String,
                idDdl: Int,
@@ -28,7 +28,7 @@ case class Ddl(id : URLString,
                progressivoIter: Int,
                idFase: Int,
                numeroFaseCompatto : String,
-               testoPresentato : String) extends SparqlRes
+               testoPresentato : Option[String]) extends SparqlRes
 
 case class Classificazione(id: String,
                           livello: String,

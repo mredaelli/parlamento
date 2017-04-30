@@ -6,8 +6,6 @@ import org.http4s.client.blaze._
 import org.http4s.Uri
 import circeDecoders._
 
-import scala.reflect.ClassTag
-
 object Client extends Logging {
 
   private val client = PooledHttp1Client()
@@ -55,10 +53,10 @@ object Client extends Logging {
     */
 
 
-  private def request[T <: SparqlRes](id: Traversable[String])
+  private def request[T <: SparqlRes](id: Traversable[String], limit: Option[Int])
     (implicit ci: ClassInfo[T], d: EntityDecoder[Seq[T]]) : Either[Throwable, Seq[T]] = {
     val mt = implicitly[EntityDecoder[Sparql]].consumes.head
-    val query = completeQuery(ci.name, ci.fields.filterNot(_.equals("id")), ids = id)
+    val query = completeQuery(ci.name, ci.fields.filterNot(_.equals("id")), ids = id, limit = limit)
     logger.warn(query)
     val req: Request = Request(uri = queryURL(query) +? ("format", Seq(mt.renderString)) )
     val readAllDdl = client.expect[Seq[T]](req)(d)
@@ -66,9 +64,9 @@ object Client extends Logging {
   }
 
   def request[T <: SparqlRes](id: String)(implicit ci: ClassInfo[T], d: EntityDecoder[Seq[T]])
-    : Either[Throwable, Seq[T]] = request[T](Seq(id))
-  def request[T <: SparqlRes]()(implicit ci: ClassInfo[T], d: EntityDecoder[Seq[T]])
-    : Either[Throwable, Seq[T]] = request[T](Seq())
+    : Either[Throwable, Seq[T]] = request[T](Seq(id), None)
+  def request[T <: SparqlRes](limit: Option[Int] = None)(implicit ci: ClassInfo[T], d: EntityDecoder[Seq[T]])
+    : Either[Throwable, Seq[T]] = request[T](Seq(), limit)
 
   def close(): Unit = client.shutdownNow()
 }

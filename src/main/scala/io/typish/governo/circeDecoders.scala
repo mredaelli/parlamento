@@ -49,7 +49,7 @@ object circeDecoders {
         }
         oneRes match {
           case Right(r) => r.asRight[DecodeFailure]
-          case Left(l) => GenericDecodeFailure(l.message, httpVersion => Response(Status.NotAcceptable, httpVersion).withBody(""))
+          case Left(l) => GenericDecodeFailure(l.getMessage(), httpVersion => Response(Status.NotAcceptable, httpVersion).withBody(""))
             .asLeft[Seq[T]]
         }
       })

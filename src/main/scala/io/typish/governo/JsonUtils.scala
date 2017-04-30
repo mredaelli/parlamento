@@ -21,11 +21,20 @@ object JsonUtils {
         case Some(bindings) =>
           val funcs = bindings.downArray.fields.get.map(f =>
             Kleisli {
-              (v: Json) => v.hcursor.downField(f).withFocus(j => j.withObject(_ => v.hcursor.downField(f).downField("value").focus.get)).top
+              (v: Json) => {
+                val field = v.hcursor.downField(f)
+                if( field.succeeded )
+                  field.withFocus(j => j.withObject(_ => field.downField("value").focus.get)).top
+                else
+                  Some(v)
+              }
             }
           ) reduce ((a, b) => a compose b)
           //val all = funcs
-          Right(bindings.values.get.flatMap(funcs.apply))
+          println(s"in json: ${bindings.values.get.length}")
+          var res = Right(bindings.values.get.flatMap(funcs.apply))
+          println(s"in json 2: ${res.right.get.length}")
+          res
         case None => Left(s"Couldn't navigate to results/bindings from $json")
       }
     }
